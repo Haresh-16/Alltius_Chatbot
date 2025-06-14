@@ -1,12 +1,4 @@
----
-title: Multi-Agent RAG Chatbot
-emoji: 🤖
-colorFrom: blue
-colorTo: purple
-sdk: streamlit
-app_file: streamlit_app.py
-pinned: false
----
+
 
 # 🤖 Multi-Agent RAG Chatbot
 
@@ -42,6 +34,172 @@ This system implements a sophisticated **Multi-Agent RAG (Retrieval-Augmented Ge
 - **Role**: Response generation specialist  
 - **Function**: Generates final answers using retrieved context
 - **Capability**: Produces human-like responses with source attribution
+
+## 📁 Project Structure
+
+### 🎯 **Core Application Files**
+- **`streamlit_app.py`** - Main Streamlit web application with chat interface and real-time agent logs
+- **`rag_system.py`** - Multi-Agent RAG system implementation with all five specialized agents
+- **`requirements.txt`** - Python dependencies and package versions for the project
+
+### 🗄️ **Data Processing Pipeline**
+
+The data processing pipeline is a sophisticated multi-stage system that transforms raw documents and web content into structured, searchable knowledge chunks optimized for RAG retrieval. Here's how each stage works:
+
+#### **📄 Stage 1: Document Extraction (`doc_extraction.py`)**
+
+**Purpose**: Extracts and preprocesses content from health insurance policy documents (PDF/DOCX)
+
+**Technical Implementation**:
+- **PDF Processing**: Uses PyMuPDF (fitz) to extract text and tables from insurance PDFs
+  - Processes first 5 pages of each document for efficiency
+  - Extracts table data with proper header-value mapping
+  - Identifies and extracts text blocks while avoiding table overlap
+  - Creates structured chunks with metadata (page number, file source, plan name)
+
+- **DOCX Processing**: Uses python-docx to extract paragraph content
+  - Processes all paragraphs in the document
+  - Maintains document structure and formatting context
+
+- **Advanced Cleaning & Filtering**:
+  - **Boilerplate Removal**: Eliminates page numbers, copyright notices, disclaimers
+  - **Length Filtering**: Removes chunks with fewer than 10 words
+  - **Duplicate Detection**: Uses Levenshtein distance (95% similarity threshold) to remove near-duplicates
+  - **Content Normalization**: Standardizes whitespace and formatting
+
+**Output**: 
+- `all_pdf_chunks_cleaned.json` - ~524 cleaned chunks from insurance PDFs
+- `all_docx_chunks_cleaned.json` - ~82 cleaned chunks from DOCX files
+
+#### **🌐 Stage 2: Web Content Scraping (`web_scraper.py`)**
+
+**Purpose**: Scrapes Angel One support pages for trading platform FAQs and guides
+
+**Technical Implementation**:
+- **Dynamic Content Handling**: Uses Playwright with Chromium for JavaScript-rendered content
+  - Waits for `networkidle` state to ensure complete page loading
+  - Handles single-page applications and dynamic content updates
+
+- **Intelligent Crawling**:
+  - Recursive link discovery within the `/support/` domain
+  - Automatic URL normalization and duplicate prevention
+  - Excludes Hindi language pages (`/hindi/` paths)
+  - Implements polite crawling with configurable delays (1.5s default)
+
+- **Content Extraction Strategy**:
+  - Targets main content areas (`article-content`, `main`, `body` fallbacks)
+  - Removes navigation, footer, scripts, and other non-content elements
+  - Extracts Q&A pairs by identifying question-answer patterns
+  - Creates structured chunks with rich metadata (URL, page title, section context)
+
+**Output**: `angelone_faqs_chunks.json` - Raw scraped content ready for post-processing
+
+#### **🧹 Stage 3: Post-Processing & Refinement (`angelone_faqs_postproc.py`)**
+
+**Purpose**: Advanced cleaning and quality enhancement of scraped Angel One content
+
+**Technical Implementation**:
+- **FAQ-Specific Pattern Removal**: Eliminates web-specific noise:
+  - Feedback prompts ("Was this article helpful?", "Yes/No" buttons)
+  - Navigation elements ("Related articles", "Back to top")
+  - Social sharing widgets ("Share this article", social media links)
+  - Generic website elements (copyright, privacy policy, footers)
+  - Contact/support prompts ("Still have questions?")
+
+- **Advanced Deduplication**:
+  - **Exact Duplicate Removal**: Eliminates identical content strings
+  - **Near-Duplicate Detection**: Uses fuzzy matching (90% similarity threshold)
+  - **Content Length Filtering**: Removes chunks shorter than 50 words
+
+- **Quality Enhancement**:
+  - Text normalization and whitespace standardization
+  - Content validation and structure preservation
+  - Metadata enrichment and standardization
+
+**Output**: `cleaned_angelone_faqs_chunks.json` - ~632 high-quality, deduplicated chunks
+
+#### **🗃️ Stage 4: Vector Database Setup (`setup_pinecone.py`)**
+
+**Purpose**: Initialize and configure the Pinecone vector database infrastructure
+
+**Technical Implementation**:
+- **Environment Validation**: Checks for required API keys and data availability
+- **Index Configuration**: 
+  - Creates Pinecone index with 384-dimensional vectors (all-MiniLM-L6-v2 embeddings)
+  - Uses cosine similarity metric for semantic search
+  - Implements serverless architecture (AWS us-east-1)
+
+- **Namespace Planning**: Maps JSON files to organized namespaces:
+  - `all-pdf-chunks-cleaned` → Insurance PDF content
+  - `all-docx-chunks-cleaned` → Insurance DOCX content  
+  - `cleaned-angelone-faqs-chunks` → Angel One support content
+
+**Output**: Configured Pinecone index ready for data loading
+
+#### **🚀 Stage 5: Vector Embedding & Loading (`pinecone_loader.py`)**
+
+**Purpose**: Convert processed text chunks into searchable vector embeddings and load into Pinecone
+
+**Technical Implementation**:
+- **Embedding Generation**:
+  - Uses SentenceTransformers `all-MiniLM-L6-v2` model (384 dimensions)
+  - Optimized for semantic similarity and fast inference
+  - Batch processing with progress tracking for efficiency
+
+- **Vector Preparation**:
+  - Generates unique IDs for each chunk (`namespace_uuid_index`)
+  - Creates comprehensive metadata:
+    - Full content (truncated to 1000 chars for metadata limits)
+    - Source information (file, page, URL)
+    - Content statistics (length, type)
+    - Namespace organization for domain separation
+
+- **Batch Upload Strategy**:
+  - Uploads vectors in batches of 100 for optimal performance
+  - Implements error handling and retry logic
+  - Progress tracking with tqdm for user feedback
+  - Separate namespace isolation for different content types
+
+**Output**: Fully populated Pinecone vector database with three specialized namespaces
+
+#### **🔄 Pipeline Flow Summary**
+
+```
+Raw Documents → Extract & Clean → Web Scraping → Post-Process → Vector DB Setup → Embed & Load
+     ↓              ↓                ↓              ↓              ↓              ↓
+Insurance PDFs → Text Chunks → Angel One FAQs → Quality Chunks → Pinecone Index → Searchable Vectors
+Insurance DOCX                                                                        
+```
+
+**Key Pipeline Features**:
+- **Multi-Source Integration**: Handles both document extraction and web scraping
+- **Quality Assurance**: Multiple cleaning and filtering stages ensure high-quality data
+- **Scalable Architecture**: Modular design allows easy addition of new data sources
+- **Semantic Organization**: Namespace separation enables targeted retrieval
+- **Metadata Preservation**: Maintains source attribution throughout the pipeline
+- **Error Resilience**: Comprehensive error handling and logging at each stage
+
+### 🧪 **Evaluation & Testing**
+- **`eval_rag.py`** - RAGAs evaluation framework to assess system performance with metrics
+
+### 🐳 **Deployment Configuration**
+- **`Dockerfile`** - Docker container configuration for deployment
+- **`.dockerignore`** - Specifies files to exclude from Docker builds
+- **`.gitignore`** - Git version control exclusions
+
+### 📊 **Data Storage**
+- **`jsons_from_sources/`** - Directory containing processed JSON chunks from all data sources
+  - `all_pdf_chunks_cleaned.json` - Processed health insurance PDF content
+  - `all_docx_chunks_cleaned.json` - Processed health insurance DOCX content  
+  - `cleaned_angelone_faqs_chunks.json` - Processed Angel One FAQ content
+- **`Insurance PDFs/`** - Raw health insurance policy documents (PDF/DOCX format)
+- **`Insurance PDFs.zip`** - Compressed archive of insurance documents
+
+### ⚙️ **Development Files**
+- **`README.md`** - Project documentation and setup instructions
+- **`venv/`** - Python virtual environment (excluded from version control)
+- **`__pycache__/`** - Python bytecode cache (excluded from version control)
+- **`.git/`** - Git repository metadata
 
 ## 🔧 Environment Variables Required
 
@@ -114,19 +272,6 @@ streamlit run streamlit_app.py
    - `HUGGING_FACE_HUB_TOKEN`
 5. **Deploy** - Your space will automatically build and run
 
-### Docker Deployment
-
-```bash
-# Build the Docker image
-docker build -t rag-chatbot .
-
-# Run with environment variables
-docker run -p 7860:7860 \
-  -e PINECONE_API_KEY="your_key" \
-  -e HUGGING_FACE_HUB_TOKEN="your_token" \
-  rag-chatbot
-```
-
 ## 💡 Usage Examples
 
 ### Angel One Support
@@ -184,31 +329,15 @@ docker run -p 7860:7860 \
 - System status indicators
 - Error handling and recovery
 
-## 🧪 Evaluation
+## 🧪 Future Work
 
-Run the evaluation script to assess system performance:
-
-```bash
-python eval_rag.py
-```
+To complete the evaluation script ```eval_rag.py``` to assess system performance:
 
 **Evaluation Metrics:**
 - **Faithfulness**: Answer accuracy to source content
 - **Answer Relevancy**: Response relevance to question  
 - **Context Precision**: Quality of retrieved context
 - **Context Recall**: Coverage of relevant information
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
