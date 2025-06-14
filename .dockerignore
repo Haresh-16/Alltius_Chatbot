@@ -1,0 +1,75 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+temp.txt
+temp_create.py
+gen.py
+
+# Data files (these should be loaded from external sources)
+Insurance PDFs/
+Insurance PDFs.zip
+angelone_scraped_data/
+jsons_from_sources/
+
+# Scripts not needed in production
+setup_pinecone.py
+pinecone_loader.py
+test_rag.py
+doc_extraction.py
+web_scraper.py
+pdf_text_extraction.py
+webpages_urls.py
+angelone_faqs_postproc.py
+cleaned_streamlit_app.py
+
+# Environment files (secrets should be set via HF Spaces)
+.env
+.env.local
+.env.production 
