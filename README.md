@@ -288,7 +288,7 @@ streamlit run streamlit_app.py
 
 ## 🛠️ Technical Stack
 
-- **🤖 LLM**: Mistral-7B-Instruct-v0.3 (HuggingFace)
+- **🤖 LLM**: Mistral-7B-Instruct-v0.3 (HuggingFace) NOTE: This was used instead of LLM APIs because of privacy concerns for users querying about medical and financial data.
 - **🗄️ Vector Database**: Pinecone
 - **🔗 Framework**: LangChain
 - **🎨 UI**: Streamlit
