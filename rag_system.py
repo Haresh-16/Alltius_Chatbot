@@ -15,9 +15,6 @@ from langchain_huggingface import HuggingFaceEndpoint
 from pinecone import Pinecone
 from sentence_transformers import SentenceTransformer
 
-# Streamlit for secrets management
-import streamlit as st
-
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -293,24 +290,16 @@ class AnsweringAgent:
             }
 
 def initialize_rag_system(pinecone_api_key: str = None, huggingface_token: str = None) -> Optional[MultiAgentRAGSystem]:
-    # Try to get from Streamlit secrets first, then fall back to provided parameters or environment variables
-    try:
-        if not pinecone_api_key:
-            pinecone_api_key = st.secrets.get("PINECONE_API_KEY") or os.getenv('PINECONE_API_KEY')
-        if not huggingface_token:
-            huggingface_token = st.secrets.get("HUGGING_FACE_HUB_TOKEN") or os.getenv('HUGGING_FACE_HUB_TOKEN')
-    except Exception as e:
-        # Fallback to environment variables if secrets are not available (e.g., running locally)
-        logger.info("Streamlit secrets not available, falling back to environment variables")
-        if not pinecone_api_key:
-            pinecone_api_key = os.getenv('PINECONE_API_KEY')
-        if not huggingface_token:
-            huggingface_token = os.getenv('HUGGING_FACE_HUB_TOKEN')
+    # Get from provided parameters or environment variables
+    if not pinecone_api_key:
+        pinecone_api_key = os.getenv('PINECONE_API_KEY')
+    if not huggingface_token:
+        huggingface_token = os.getenv('HUGGING_FACE_HUB_TOKEN')
     
     if not pinecone_api_key:
-        raise ValueError("PINECONE_API_KEY not found in secrets or environment variables")
+        raise ValueError("PINECONE_API_KEY not found in environment variables")
     if not huggingface_token:
-        raise ValueError("HUGGING_FACE_HUB_TOKEN not found in secrets or environment variables")
+        raise ValueError("HUGGING_FACE_HUB_TOKEN not found in environment variables")
     
     try:
         return MultiAgentRAGSystem(

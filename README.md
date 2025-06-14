@@ -4,228 +4,216 @@ emoji: 🤖
 colorFrom: blue
 colorTo: purple
 sdk: streamlit
-app_file: app.py
+app_file: streamlit_app.py
 pinned: false
 ---
 
 # 🤖 Multi-Agent RAG Chatbot
 
-A sophisticated Multi-Agent Retrieval-Augmented Generation (RAG) chatbot designed for Angel One customer support and health insurance documentation. The system uses multiple specialized agents to process queries intelligently and provide accurate responses.
+A sophisticated chatbot system built with **Multi-Agent RAG Architecture** that specializes in:
+- 📈 **Angel One Support**: Trading platform assistance and FAQ
+- 🏥 **Health Insurance Plans**: Insurance-related queries and guidance
 
-## 🚀 Features
+## 🏗️ Multi-Agent Architecture
 
-- **Multi-Agent Architecture**: 5 specialized agents working together
-  - **Head Agent**: Orchestrates the entire workflow
-  - **Query Agent**: Analyzes and classifies user queries
-  - **Retriever Agent**: Fetches relevant documents from Pinecone
-  - **Reranking Agent**: Ranks documents by relevance
-  - **Answering Agent**: Generates final responses
+This system implements a sophisticated **Multi-Agent RAG (Retrieval-Augmented Generation)** architecture with specialized agents:
 
-- **Intelligent Query Routing**: Automatically determines if queries are about:
-  - Health plans and insurance eligibility
-  - Angel One stock broking platform
-  - Irrelevant topics (responds appropriately)
+### 🧠 **Head Agent** 
+- **Role**: Central orchestrator and coordinator
+- **Function**: Manages workflow between all other agents
+- **Capability**: Routes queries, makes decisions, and ensures smooth operation
 
-- **Advanced RAG Pipeline**: Uses Pinecone vector database with sentence transformers for semantic search
+### 🔍 **Query Agent**
+- **Role**: Query analysis and categorization  
+- **Function**: Analyzes incoming user questions to determine intent
+- **Capability**: Classifies queries as Angel One support, health insurance, or irrelevant
 
-- **Powered by Mistral-7B-Instruct-v0.3**: Uses Hugging Face Inference API for high-quality responses
+### 📚 **Retriever Agent**
+- **Role**: Document retrieval specialist
+- **Function**: Searches vector database for relevant documents
+- **Capability**: Performs semantic search across different namespaces
 
-## 🛠️ Technology Stack
+### 🎯 **Reranking Agent**  
+- **Role**: Relevance optimization specialist
+- **Function**: Reorders retrieved documents by relevance to query
+- **Capability**: Uses LLM-based reranking for improved context selection
 
-- **Frontend**: Streamlit
-- **LLM**: Mistral-7B-Instruct-v0.3 via Hugging Face Inference API
-- **Vector Database**: Pinecone
-- **Embeddings**: Sentence Transformers (all-MiniLM-L6-v2)
-- **Data Preprocessing**: PyMuPDF, python-docx, Levenshtein, BeautifulSoup, Playwright
-- **Framework**: LangChain
-- **Deployment**: Docker on Hugging Face Spaces
+### 💬 **Answering Agent**
+- **Role**: Response generation specialist  
+- **Function**: Generates final answers using retrieved context
+- **Capability**: Produces human-like responses with source attribution
 
 ## 🔧 Environment Variables Required
 
-This application requires the following secrets to be configured in the Hugging Face Space settings:
+### For Hugging Face Spaces Deployment
 
-### Required Secrets for Hugging Face Spaces
+This application requires the following environment variables to be set in your Hugging Face Space settings:
 
-1.  **PINECONE_API_KEY**: Your Pinecone API key
-    -   Get it from [Pinecone Console](https://app.pinecone.io/)
-    -   Used for vector database operations
+1. **PINECONE_API_KEY**: Your Pinecone API key
+   - Get it from [Pinecone Console](https://app.pinecone.io/)
+   - Used for vector database operations
 
-2.  **HUGGING_FACE_HUB_TOKEN**: Your Hugging Face API token
-    -   Get it from [Hugging Face Settings](https://huggingface.co/settings/tokens)
-    -   Required for Mistral-7B-Instruct-v0.3 model access
+2. **HUGGING_FACE_HUB_TOKEN**: Your Hugging Face API token
+   - Get it from [Hugging Face Settings](https://huggingface.co/settings/tokens)
+   - Required for Mistral-7B-Instruct-v0.3 model access
 
-### Optional Secrets (for evaluation only)
+### For Local Development
 
-3.  **OPENAI_API_KEY**: Your OpenAI API key (optional)
-    -   Only required if running the evaluation script with RAGAS
-    -   Get it from [OpenAI Platform](https://platform.openai.com/api-keys)
-
-### Setting Secrets in Hugging Face Spaces
-
-1. Go to your Hugging Face Space settings
-2. Navigate to the "Settings" tab
-3. Scroll down to "Repository secrets"
-4. Add each secret with the exact key names listed above
-5. The application will automatically use these secrets when deployed
-
-### Local Development
-
-For local development, you can still use environment variables or a `.env` file:
+Create a `.env` file in the project root:
 
 ```bash
-# .env file
 PINECONE_API_KEY=your_pinecone_key_here
 HUGGING_FACE_HUB_TOKEN=your_hf_token_here
-OPENAI_API_KEY=your_openai_key_here  # Optional
+# Optional: For evaluation only
+OPENAI_API_KEY=your_openai_key_here
 ```
 
-The application will automatically fall back to environment variables if Streamlit secrets are not available.
+## 🚀 Getting Started
 
-## 📊 Knowledge Base
+### Prerequisites
+- Python 3.8+
+- Pinecone API key
+- Hugging Face Hub token
 
-The system has access to two distinct sources of truth:
+### Installation
 
--   **Health Insurance Documentation**: Eligibility criteria, coverage details, medical conditions from PDF and DOCX files.
--   **Angel One Support**: Web-scraped FAQs on trading, account management, IPOs, and mutual funds.
-
----
-
-## ⚙️ Data Preprocessing Pipeline
-
-Before being loaded into the vector database, source documents undergo a rigorous, source-specific preprocessing pipeline to ensure maximum data quality. Each step is handled by specialized Python scripts:
-
-### 1. Health Insurance Documents (PDF & DOCX)
-**📁 Handled by: `doc_extraction.py`**
-
-These documents require robust text extraction and structural understanding.
-
--   **Source Ingestion**: The pipeline processes PDF and DOCX files from the `Insurance PDFs/` directory. For efficiency, only the **first 5 pages** of each PDF are processed.
--   **Extraction and Chunking**:
-    -   **PDFs**: Text blocks and tables are extracted using PyMuPDF. Tables are chunked **row by row**, creating a separate document for each row to allow for fine-grained retrieval of specific details. Paragraphs are chunked by text block.
-    -   **DOCX**: Documents are chunked **paragraph by paragraph** using python-docx library.
--   **Output**: Processed chunks are saved to `jsons_from_sources/all_pdf_chunks_cleaned.json` and `jsons_from_sources/all_docx_chunks_cleaned.json`
-
-### 2. Angel One Support FAQs (Web-scraped)
-**📁 Handled by: `web_scraper.py` → `angelone_faqs_postproc.py`**
-
-This data is semi-structured and requires cleaning of web artifacts through a two-stage process:
-
-#### Stage 1: Web Scraping (`web_scraper.py`)
--   **Dynamic Content Handling**: `Playwright` is used to handle dynamic, JavaScript-rendered content from Angel One support pages, ensuring all information is captured.
--   **HTML Parsing**: `BeautifulSoup` parses the final HTML and strips out boilerplate (navbars, footers, ads).
--   **Raw Data Storage**: Scraped content is stored in the `angelone_scraped_data/` directory for further processing.
-
-#### Stage 2: FAQ Processing (`angelone_faqs_postproc.py`)
--   **Question-Answer Pair Extraction**: Identifies and extracts Q&A pairs from the scraped HTML. Each pair is treated as a single, coherent chunk to maintain the direct link between a question and its answer.
--   **Metadata Extraction**: Key metadata is attached to each chunk, including the original source `URL` for traceability and the `category/topic` (e.g., "Trading", "Account Opening") inferred from the page.
--   **HTML Tag Conversion**: Converts relevant HTML tags (`<ul>`, `<b>`, etc.) into clean, readable text.
--   **Output**: Processed FAQ chunks are saved to `jsons_from_sources/cleaned_angelone_faqs_chunks.json`
-
-### 3. Final Cleaning and Filtering (Applied to All Sources)
-**📁 Integrated within: `doc_extraction.py` and `angelone_faqs_postproc.py`**
-
-After initial extraction and chunking, all chunks undergo a final, unified cleaning process:
-
--   **Boilerplate Removal**: Regex patterns remove common boilerplate content like page numbers (`Page 1 of 10`), copyright notices, and disclaimers.
--   **Short Chunk Removal**: Chunks with fewer than 10 words are discarded as they typically lack meaningful context for the LLM.
--   **Duplicate Removal**:
-    -   **Exact duplicates** are removed.
-    -   **Near-duplicates** are identified and removed using the Levenshtein distance similarity ratio. Chunks that are >95% similar are considered duplicates.
-
-### 4. Vector Database Loading
-**📁 Handled by: `setup_pinecone.py` → `pinecone_loader.py`**
-
-The final step involves loading the processed data into Pinecone:
-
-#### Setup (`setup_pinecone.py`)
--   **Index Creation**: Creates and configures the Pinecone vector database index with appropriate dimensions and similarity metrics.
--   **Environment Setup**: Handles API key configuration and connection establishment.
-
-#### Data Loading (`pinecone_loader.py`)
--   **Embedding Generation**: Uses Sentence Transformers (all-MiniLM-L6-v2) to generate vector embeddings for each processed chunk.
--   **Namespace Organization**: Loads data into separate namespaces:
-    -   `all-pdf-chunks-cleaned`: Health insurance PDF content
-    -   `all-docx-chunks-cleaned`: Health insurance DOCX content  
-    -   `cleaned-angelone-faqs-chunks`: Angel One FAQ content
--   **Batch Processing**: Efficiently uploads vectors in batches to Pinecone for optimal performance.
-
----
-
-## 🔍 How It Works
-**📁 Core System: `rag_system.py`**
-
-1.  **Query Analysis**: Determines if the question is about health plans, Angel One, or irrelevant
-2.  **Document Retrieval**: Searches relevant namespaces in Pinecone vector database
-3.  **Reranking**: Uses LLM to rank documents by relevance to the specific query
-4.  **Answer Generation**: Generates contextual responses using retrieved documents
-5.  **Memory Management**: Maintains conversation history for context
-
-## 💬 Example Queries
-
-Try asking questions like:
-
--   **Health Plans**: "What are the eligibility criteria for health insurance?"
--   **Angel One**: "How do I apply for IPO in Angel One?"
--   **Irrelevant**: "What's the weather today?" (Will be handled appropriately)
-
-## 🚨 Important Notes
-
--   **Data Privacy**: The use of open-source models like Mistral (as opposed to proprietary APIs like OpenAI) is a deliberate choice to enhance data privacy and control, with options for fully self-hosted, local deployments.
--   The system will respond appropriately to irrelevant queries.
--   All responses are generated based on the provided knowledge base.
--   The system maintains conversation history for better context understanding.
--   Agent logs are available in the UI for debugging and transparency.
-
-## 🚀 Future Steps
-
--   **RAGAS Evaluation**: Implement the RAGAS framework (`eval_rag.py`) to rigorously evaluate and score the performance of the retrieval and generation pipeline, ensuring high-quality and factual responses.
--   **Multi-Language Support**: Extend the model's capabilities to understand and respond to queries in multiple languages to broaden accessibility.
-
-## 🏗️ Local Development
-**📁 Main Application: `streamlit_app.py`**
-
-To run locally:
-
+1. **Clone the repository**
 ```bash
-# Clone the repository
-git clone <repo-url>
-cd <repo-name>
+git clone <repository-url>
+cd multi-agent-rag-chatbot
+```
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
+2. **Install dependencies**
+```bash
 pip install -r requirements.txt
+```
 
-# Set environment variables
+3. **Set up environment variables**
+```bash
+# For local development
 export PINECONE_API_KEY="your_key_here"
 export HUGGING_FACE_HUB_TOKEN="your_token_here"
 
-# Run the application
+# For Hugging Face Spaces: Set these in Space settings
+```
+
+4. **Run the application**
+```bash
 streamlit run streamlit_app.py
 ```
 
-## 📁 File Structure Overview
+## 🌐 Deployment
 
-```
-├── streamlit_app.py              # Main Streamlit web application
-├── rag_system.py                 # Multi-agent RAG system core
-├── doc_extraction.py             # PDF/DOCX processing and chunking
-├── web_scraper.py                # Angel One website scraping
-├── angelone_faqs_postproc.py     # FAQ processing and cleaning
-├── setup_pinecone.py             # Pinecone index setup
-├── pinecone_loader.py            # Vector database loading
-├── eval_rag.py                   # RAGAS evaluation framework
-├── requirements.txt              # Python dependencies
-├── Dockerfile                    # Docker deployment configuration
-├── .dockerignore                 # Docker build optimization
-├── Insurance PDFs/               # Source health insurance documents
-├── angelone_scraped_data/        # Raw scraped Angel One data
-└── jsons_from_sources/           # Processed JSON chunks
-    ├── all_pdf_chunks_cleaned.json
-    ├── all_docx_chunks_cleaned.json
-    └── cleaned_angelone_faqs_chunks.json
+### Hugging Face Spaces
+
+1. **Create a new Space** on [Hugging Face Spaces](https://huggingface.co/spaces)
+2. **Choose Streamlit SDK**
+3. **Upload your files** or connect your Git repository
+4. **Set environment variables** in Space settings:
+   - `PINECONE_API_KEY`
+   - `HUGGING_FACE_HUB_TOKEN`
+5. **Deploy** - Your space will automatically build and run
+
+### Docker Deployment
+
+```bash
+# Build the Docker image
+docker build -t rag-chatbot .
+
+# Run with environment variables
+docker run -p 7860:7860 \
+  -e PINECONE_API_KEY="your_key" \
+  -e HUGGING_FACE_HUB_TOKEN="your_token" \
+  rag-chatbot
 ```
 
-**Powered by LangChain, Hugging Face & Pinecone** 🚀
+## 💡 Usage Examples
+
+### Angel One Support
+- "How do I add funds to my Angel One account?"
+- "What are the brokerage charges for equity trading?"
+- "How do I place a stop loss order?"
+- "How to enable margin trading?"
+
+### Health Insurance  
+- "What are the eligibility requirements for health insurance?"
+- "What is the waiting period for pre-existing conditions?"
+- "How do I claim insurance for hospitalization?"
+- "What is the difference between individual and family floater plans?"
+
+## 🛠️ Technical Stack
+
+- **🤖 LLM**: Mistral-7B-Instruct-v0.3 (HuggingFace)
+- **🗄️ Vector Database**: Pinecone
+- **🔗 Framework**: LangChain
+- **🎨 UI**: Streamlit
+- **📊 Embeddings**: SentenceTransformers (all-MiniLM-L6-v2)
+- **🐳 Deployment**: Docker + Hugging Face Spaces
+
+## 📊 Data Sources
+
+### Angel One Support Data
+- **Source**: Web scraping from Angel One support pages
+- **Content**: FAQs, guides, trading procedures
+- **Processing**: Cleaned and chunked JSON format
+
+### Health Insurance Data  
+- **Source**: Insurance policy documents (PDF/DOCX)
+- **Content**: Policy terms, eligibility criteria, claim procedures
+- **Processing**: Extracted and chunked with metadata
+
+## 🔍 System Features
+
+### 🎯 **Smart Query Classification**
+- Automatically determines query type and relevance
+- Routes to appropriate knowledge base
+- Handles multi-turn conversations
+
+### 📚 **Advanced Retrieval**
+- Semantic search with vector embeddings
+- Multi-namespace document retrieval  
+- LLM-powered reranking for precision
+
+### 💬 **Contextual Responses**
+- Maintains conversation memory
+- Source attribution and transparency
+- Human-like response generation
+
+### 🔧 **Real-time Monitoring**
+- Agent activity logs in sidebar
+- System status indicators
+- Error handling and recovery
+
+## 🧪 Evaluation
+
+Run the evaluation script to assess system performance:
+
+```bash
+python eval_rag.py
+```
+
+**Evaluation Metrics:**
+- **Faithfulness**: Answer accuracy to source content
+- **Answer Relevancy**: Response relevance to question  
+- **Context Precision**: Quality of retrieved context
+- **Context Recall**: Coverage of relevant information
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **Mistral AI** for the open-source LLM
+- **Pinecone** for vector database infrastructure  
+- **Hugging Face** for model hosting and spaces
+- **LangChain** for the RAG framework
+- **Streamlit** for the intuitive UI framework
